@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "control": {
+    "scanrate": 1000,
+    "ruletype": "single"
+  },
+  "rules": [
+    {
+      "label": "Twenty",
+      "topic": "twenty",
+      "priority": 10,
+      "type": "REGEX",
+      "content": "\\b(20|twenty)\\b"
+    },
+    {
+      "label": "Invoice",
+      "topic": "invoice",
+      "priority": 20,
+      "type": "TEXT",
+      "content": "invoice"
+    }
+  ]
+}
+

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ORCA console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header><div class="brand"><span class="whale">◖</span><div><h1>ORCA</h1><p>OCR + regex automation</p></div></div><div id="phase" class="phase">CONNECTING</div></header>
+  <nav aria-label="Main navigation">
+    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="control">Control</button>
+  </nav>
+  <main>
+    <section id="status" class="page active">
+      <div class="metric-row"><article><span>Loop</span><strong id="loop-state">—</strong></article><article><span>Average cycle</span><strong id="average">—</strong></article><article><span>Target</span><strong id="target">—</strong></article><article><span>MQTT</span><strong id="mqtt">—</strong></article></div>
+      <div class="grid"><article class="panel camera"><div class="panel-title">Latest inspection</div><img id="camera" alt="Latest camera inspection"><div id="empty-camera">Waiting for a frame…</div></article><article class="panel"><div class="panel-title">Observed text</div><pre id="observed">Waiting for OCR…</pre><div class="panel-title">Classifications</div><div id="matches" class="chips"></div></article></div>
+      <article class="panel"><div class="panel-title">Cycle diagnostics</div><canvas id="chart" width="1100" height="220" aria-label="Recent cycle duration chart"></canvas><div id="breakdown" class="breakdown"></div></article>
+    </section>
+    <section id="rules" class="page">
+      <div class="toolbar"><button id="add-rule">+ Add rule</button><button id="test-rules">Test live OCR</button><button id="import-rules">Import JSON</button><a class="button" href="/api/ruleset/export">Export JSON</a><button id="save-rules" class="primary">Save ruleset</button><input id="file" type="file" accept="application/json" hidden></div>
+      <article class="panel controls"><label>Scan rate (ms)<input id="scanrate" type="number" min="1"></label><label>Match mode<select id="ruletype"><option value="single">Single, highest priority</option><option value="multi">Multiple matches</option></select></label></article>
+      <div id="rule-list"></div><div id="message" role="status"></div>
+    </section>
+    <section id="control" class="page"><article class="panel control-card"><h2>Classification loop</h2><p>Pausing keeps camera capture and OCR active while suppressing MQTT result broadcasts.</p><button id="toggle" class="danger">Pause broadcasts</button><div class="key"><kbd>Space</kbd> toggles while this page is active</div></article></section>
+  </main>
+  <template id="rule-template"><article class="panel rule"><label>Label<input data-key="label"></label><label>MQTT sub-topic<input data-key="topic"></label><label>Priority<input data-key="priority" type="number"></label><label>Type<select data-key="type"><option>TEXT</option><option>REGEX</option></select></label><label class="content">Rule contents<input data-key="content"></label><button class="remove" aria-label="Remove rule">×</button></article></template>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
+
