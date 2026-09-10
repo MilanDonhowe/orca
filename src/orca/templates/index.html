@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ORCA console</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 <body>
-  <header><div class="brand"><span class="whale">◖</span><div><h1>ORCA</h1><p>OCR + regex automation</p></div></div><div id="phase" class="phase">CONNECTING</div></header>
+  <header><div class="brand"><span class="whale">🫍</span><div><h1>ORCA</h1><p>OCR + Regex Classification</p></div></div><div id="phase" class="phase">CONNECTING</div></header>
   <nav aria-label="Main navigation">
-    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="control">Control</button>
+    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="mqtt-page">MQTT</button><button class="tab" data-page="control">Control</button>
   </nav>
   <main>
     <section id="status" class="page active">
@@ -19,13 +19,28 @@
     </section>
     <section id="rules" class="page">
       <div class="toolbar"><button id="add-rule">+ Add rule</button><button id="test-rules">Test live OCR</button><button id="import-rules">Import JSON</button><a class="button" href="/api/ruleset/export">Export JSON</a><button id="save-rules" class="primary">Save ruleset</button><input id="file" type="file" accept="application/json" hidden></div>
-      <article class="panel controls"><label>Scan rate (ms)<input id="scanrate" type="number" min="1"></label><label>Match mode<select id="ruletype"><option value="single">Single, highest priority</option><option value="multi">Multiple matches</option></select></label></article>
+      <article class="panel controls"><label>Match mode<select id="ruletype"><option value="single">Single, highest priority</option><option value="multi">Multiple matches</option></select></label></article>
       <div id="rule-list"></div><div id="message" role="status"></div>
+    </section>
+    <section id="mqtt-page" class="page">
+      <form id="mqtt-form" class="panel settings-card">
+        <div class="settings-heading"><div><div class="panel-title">Broker connection</div><h2>MQTT</h2><p>Configure the broker used for result and diagnostic broadcasts.</p></div><label class="switch-label"><input id="mqtt-enabled" type="checkbox"> Enabled</label></div>
+        <div class="form-grid">
+          <label class="wide">Broker host<input id="mqtt-host" required placeholder="localhost" autocomplete="off"></label>
+          <label>Port<input id="mqtt-port" type="number" min="1" max="65535" required></label>
+          <label class="check"><input id="mqtt-tls" type="checkbox"> Use TLS</label>
+          <label>Username<input id="mqtt-username" autocomplete="username"></label>
+          <label>Password<input id="mqtt-password" type="password" autocomplete="new-password" placeholder="Leave blank to keep saved password"></label>
+          <label>Client ID<input id="mqtt-client-id" placeholder="Auto-generated"></label>
+          <label>Keepalive (seconds)<input id="mqtt-keepalive" type="number" min="1" max="65535"></label>
+        </div>
+        <div class="topic-note"><span>Published topics</span><code>orca/results</code><code>orca/results/&lt;sub-topic&gt;</code><code>orca/diagnostic</code></div>
+        <div class="form-actions"><span id="mqtt-message" role="status"></span><button type="submit" class="primary">Save &amp; reconnect</button></div>
+      </form>
     </section>
     <section id="control" class="page"><article class="panel control-card"><h2>Classification loop</h2><p>Pausing keeps camera capture and OCR active while suppressing MQTT result broadcasts.</p><button id="toggle" class="danger">Pause broadcasts</button><div class="key"><kbd>Space</kbd> toggles while this page is active</div></article></section>
   </main>
   <template id="rule-template"><article class="panel rule"><label>Label<input data-key="label"></label><label>MQTT sub-topic<input data-key="topic"></label><label>Priority<input data-key="priority" type="number"></label><label>Type<select data-key="type"><option>TEXT</option><option>REGEX</option></select></label><label class="content">Rule contents<input data-key="content"></label><button class="remove" aria-label="Remove rule">×</button></article></template>
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script src="{{ url_for('static', path='app.js') }}"></script>
 </body>
 </html>
-

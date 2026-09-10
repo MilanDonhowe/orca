@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .models import Rule, Ruleset
+from orca.models import Rule, Ruleset
 
 
 class Classifier:

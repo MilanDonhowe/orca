@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import threading
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Protocol
 
 import cv2
@@ -46,23 +46,60 @@ class DemoCamera:
         pass
 
 
+@dataclass(frozen=True)
+class TextRegion:
+    text: str
+    confidence: float
+    polygon: list[list[int]]
+
+
+@dataclass(frozen=True)
+class OCRResult:
+    text: str
+    regions: list[TextRegion]
+
+
+class OCRBackend(Protocol):
+    def read(self, image: np.ndarray) -> OCRResult: ...
+
+
 class OCR:
+    """Default local OCR engine backed by RapidOCR's Paddle-derived ONNX models."""
+
     def __init__(self):
         from rapidocr_onnxruntime import RapidOCR
 
         self._engine = RapidOCR()
 
-    def read(self, image: np.ndarray) -> str:
+    def read(self, image: np.ndarray) -> OCRResult:
         result, _ = self._engine(image)
-        return "\n".join(str(item[1]) for item in (result or []))
+        regions = [
+            TextRegion(text=str(item[1]), confidence=float(item[2]), polygon=np.asarray(item[0], dtype=int).tolist())
+            for item in (result or [])
+        ]
+        return OCRResult("\n".join(region.text for region in regions), regions)
 
 
 class DemoOCR:
     def __init__(self, text: str = "ORCA demo product 20"):
         self.text = text
 
-    def read(self, image: np.ndarray) -> str:
-        return self.text
+    def read(self, image: np.ndarray) -> OCRResult:
+        height, width = image.shape[:2]
+        region = TextRegion(self.text, 1.0, [[150, 290], [width - 150, 290], [width - 150, 430], [150, 430]])
+        return OCRResult(self.text, [region])
+
+
+def annotate_regions(image: np.ndarray, regions: list[TextRegion]) -> np.ndarray:
+    annotated = image.copy()
+    for region in regions:
+        points = np.asarray(region.polygon, dtype=np.int32)
+        cv2.polylines(annotated, [points], True, (152, 219, 206), 3, cv2.LINE_AA)
+        anchor = tuple(points[np.argmin(points[:, 1])])
+        label = f"{region.text}  {region.confidence:.0%}"
+        cv2.putText(annotated, label, (int(anchor[0]), max(24, int(anchor[1]) - 8)), cv2.FONT_HERSHEY_SIMPLEX, .65, (7, 54, 66), 4, cv2.LINE_AA)
+        cv2.putText(annotated, label, (int(anchor[0]), max(24, int(anchor[1]) - 8)), cv2.FONT_HERSHEY_SIMPLEX, .65, (152, 219, 206), 1, cv2.LINE_AA)
+    return annotated
 
 
 def image_data_url(image: np.ndarray, max_width: int = 960) -> str:
@@ -83,4 +120,3 @@ def list_cameras(limit: int = 8) -> list[int]:
             available.append(index)
         capture.release()
     return available
-

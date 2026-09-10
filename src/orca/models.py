@@ -46,7 +46,6 @@ class Rule:
 @dataclass(frozen=True)
 class Ruleset:
     version: int = 1
-    scanrate: int = 1000
     ruletype: str = "single"
     rules: tuple[Rule, ...] = ()
 
@@ -55,19 +54,16 @@ class Ruleset:
         if int(value.get("version", 1)) != 1:
             raise ValueError("Unsupported ruleset version")
         control = value.get("control", {})
-        scanrate = int(control.get("scanrate", 1000))
         ruletype = str(control.get("ruletype", "single")).lower()
-        if scanrate <= 0:
-            raise ValueError("scanrate must be a positive integer")
         if ruletype not in {"single", "multi"}:
             raise ValueError("ruletype must be 'single' or 'multi'")
         rules = tuple(Rule.from_dict(item) for item in value.get("rules", []))
-        return cls(1, scanrate, ruletype, rules)
+        return cls(1, ruletype, rules)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "version": self.version,
-            "control": {"scanrate": self.scanrate, "ruletype": self.ruletype},
+            "control": {"ruletype": self.ruletype},
             "rules": [asdict(rule) for rule in self.rules],
         }
 
@@ -92,4 +88,3 @@ class RuntimeState:
     latest: CycleRecord | None = None
     history: list[CycleRecord] = field(default_factory=list)
     mqtt_connected: bool = False
-

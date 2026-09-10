@@ -1,7 +1,6 @@
 {
   "version": 1,
   "control": {
-    "scanrate": 1000,
     "ruletype": "single"
   },
   "rules": [
@@ -21,4 +20,3 @@
     }
   ]
 }
-

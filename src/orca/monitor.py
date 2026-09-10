@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="orca-monitor", description="Observe ORCA MQTT messages")
     parser.add_argument("broker", nargs="?", default="mqtt://localhost:1883")
-    parser.add_argument("--topic", default="orca.#")
+    parser.add_argument("--topic", default="orca/#")
     args = parser.parse_args(argv)
     parsed = urlparse(args.broker if "://" in args.broker else "mqtt://" + args.broker)
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -35,4 +35,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

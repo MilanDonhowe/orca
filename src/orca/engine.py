@@ -6,18 +6,18 @@ import time
 from dataclasses import asdict
 from datetime import datetime, timezone
 
-from .config import RulesetStore
-from .models import CycleRecord, Phase, RuntimeState
-from .mqtt import MQTTPublisher
-from .rules import Classifier
-from .vision import Camera, image_data_url
+from orca.config import ConfigStore, MQTTSettings, RulesetStore
+from orca.models import CycleRecord, Phase, RuntimeState
+from orca.mqtt import MQTTPublisher
+from orca.rules import Classifier
+from orca.vision import Camera, annotate_regions, image_data_url
 
 log = logging.getLogger(__name__)
 
 
 class OrcaEngine:
-    def __init__(self, camera: Camera, ocr, store: RulesetStore, mqtt: MQTTPublisher, paused: bool = False):
-        self.camera, self.ocr, self.store, self.mqtt = camera, ocr, store, mqtt
+    def __init__(self, camera: Camera, ocr, store: RulesetStore, mqtt: MQTTPublisher, config: ConfigStore, paused: bool = False):
+        self.camera, self.ocr, self.store, self.mqtt, self.config = camera, ocr, store, mqtt, config
         self.state = RuntimeState(paused=paused)
         self._lock = threading.RLock()
         self._stop = threading.Event()
@@ -45,6 +45,9 @@ class OrcaEngine:
         with self._lock:
             self.state.paused = paused
 
+    def configure_mqtt(self, settings: MQTTSettings) -> None:
+        self.mqtt.configure(settings)
+
     def snapshot(self) -> dict:
         with self._lock:
             history = self.state.history[-60:]
@@ -58,7 +61,7 @@ class OrcaEngine:
                 "latest": latest,
                 "history": [asdict(item) | {"image": None} for item in history],
                 "average_ms": round(sum(totals) / len(totals), 2) if totals else 0,
-                "scanrate": self.store.load().scanrate,
+                "scanrate": self.config.load().scan_rate,
             }
 
     def _phase(self, phase: Phase) -> None:
@@ -71,10 +74,11 @@ class OrcaEngine:
             timings: dict[str, float] = {}
             try:
                 ruleset = self.store.load()
+                scan_rate = self.config.load().scan_rate
                 phase_start = time.perf_counter(); self._phase(Phase.IMAGE_CAPTURE)
                 frame = self.camera.read(); timings["capture"] = self._elapsed(phase_start)
                 phase_start = time.perf_counter(); self._phase(Phase.OCR_MODEL)
-                text = self.ocr.read(frame); timings["ocr"] = self._elapsed(phase_start)
+                ocr_result = self.ocr.read(frame); text = ocr_result.text; timings["ocr"] = self._elapsed(phase_start)
                 phase_start = time.perf_counter(); self._phase(Phase.RULES_CLASSIFIER)
                 matches = Classifier(ruleset).classify(text); timings["classify"] = self._elapsed(phase_start)
                 paused = self.state.paused
@@ -90,18 +94,18 @@ class OrcaEngine:
                 record = CycleRecord(
                     timestamp=datetime.now(timezone.utc).isoformat(), text=text, matches=matches,
                     phases_ms={key: round(value, 2) for key, value in timings.items()},
-                    total_ms=round(total, 2), exceeded=total > ruleset.scanrate,
-                    image=image_data_url(frame),
+                    total_ms=round(total, 2), exceeded=total > scan_rate,
+                    image=image_data_url(annotate_regions(frame, ocr_result.regions)),
                 )
                 with self._lock:
                     self.state.latest = record
                     self.state.history.append(record)
                     self.state.history = self.state.history[-120:]
                 if record.exceeded:
-                    log.warning("Cycle %.1fms exceeded %dms scan rate", total, ruleset.scanrate)
+                    log.warning("Cycle %.1fms exceeded %dms scan rate", total, scan_rate)
                 if not paused:
                     self.mqtt.publish_diagnostic({"phase": self.state.phase.value, "total_ms": total, "phases_ms": timings, "exceeded": record.exceeded})
-                remaining = max(0.0, ruleset.scanrate - total)
+                remaining = max(0.0, scan_rate - total)
                 self._phase(Phase.PAUSED if paused else Phase.DELAY)
                 self._stop.wait(remaining / 1000)
             except Exception as exc:
@@ -115,4 +119,3 @@ class OrcaEngine:
     @staticmethod
     def _elapsed(start: float) -> float:
         return (time.perf_counter() - start) * 1000
-
