@@ -5,7 +5,9 @@ import threading
 from dataclasses import dataclass
 from typing import Protocol
 
+
 import cv2
+import cv2.utils.logging as cv2_log
 import numpy as np
 
 
@@ -113,10 +115,16 @@ def image_data_url(image: np.ndarray, max_width: int = 960) -> str:
 
 
 def list_cameras(limit: int = 8) -> list[int]:
+    # silence annoying cv2 "out of index" logs
+    log_level = cv2_log.getLogLevel()
+    cv2_log.setLogLevel(cv2_log.LOG_LEVEL_SILENT)
+
     available: list[int] = []
     for index in range(limit):
         capture = cv2.VideoCapture(index)
         if capture.isOpened():
             available.append(index)
         capture.release()
+    # restore logging
+    cv2_log.setLogLevel(log_level)
     return available

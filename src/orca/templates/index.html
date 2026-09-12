@@ -9,7 +9,7 @@
 <body>
   <header><div class="brand"><span class="whale">🫍</span><div><h1>ORCA</h1><p>OCR + Regex Classification</p></div></div><div id="phase" class="phase">CONNECTING</div></header>
   <nav aria-label="Main navigation">
-    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="mqtt-page">MQTT</button><button class="tab" data-page="control">Control</button>
+    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="mqtt-page">MQTT</button><button class="tab" data-page="control">Control</button><a class="tab" href="/docs">API docs</a>
   </nav>
   <main>
     <section id="status" class="page active">
@@ -38,7 +38,10 @@
         <div class="form-actions"><span id="mqtt-message" role="status"></span><button type="submit" class="primary">Save &amp; reconnect</button></div>
       </form>
     </section>
-    <section id="control" class="page"><article class="panel control-card"><h2>Classification loop</h2><p>Pausing keeps camera capture and OCR active while suppressing MQTT result broadcasts.</p><button id="toggle" class="danger">Pause broadcasts</button><div class="key"><kbd>Space</kbd> toggles while this page is active</div></article></section>
+    <section id="control" class="page">
+      <article class="panel control-card"><h2>Classification loop</h2><p>Pausing keeps camera capture and OCR active while suppressing MQTT result broadcasts.</p><button id="toggle" class="danger">Pause broadcasts</button><div class="key"><kbd>Space</kbd> toggles while this page is active</div></article>
+      <form id="camera-form" class="panel settings-card" style="max-width:650px"><div class="panel-title">Startup settings</div><h2>Camera</h2><p class="settings-copy">Enter a device index, stream URL, video path, or <code>demo</code>. Leave blank to choose from available cameras when ORCA starts interactively.</p><label>Camera source<input id="camera-source" placeholder="Automatic selection" autocomplete="off"></label><div class="form-actions"><span id="camera-message" role="status"></span><button type="submit" class="primary">Save camera</button></div></form>
+    </section>
   </main>
   <template id="rule-template"><article class="panel rule"><label>Label<input data-key="label"></label><label>MQTT sub-topic<input data-key="topic"></label><label>Priority<input data-key="priority" type="number"></label><label>Type<select data-key="type"><option>TEXT</option><option>REGEX</option></select></label><label class="content">Rule contents<input data-key="content"></label><button class="remove" aria-label="Remove rule">×</button></article></template>
   <script src="{{ url_for('static', path='app.js') }}"></script>

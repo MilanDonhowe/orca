@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -32,6 +33,13 @@ def create_app(engine, store: RulesetStore, config_store: ConfigStore | None = N
     @app.get("/")
     async def index(request: Request):
         return templates.TemplateResponse(request=request, name="index.html")
+
+    @app.get("/docs", include_in_schema=False)
+    async def api_docs():
+        return get_swagger_ui_html(
+            openapi_url="/static/openapi.yaml",
+            title="ORCA API documentation",
+        )
 
     @app.get("/api/status")
     async def status():
@@ -66,6 +74,19 @@ def create_app(engine, store: RulesetStore, config_store: ConfigStore | None = N
     @app.get("/api/mqtt")
     async def get_mqtt():
         return config_store.load().mqtt.public_dict()
+
+    @app.get("/api/config")
+    async def get_config():
+        return {"camera": config_store.load().camera or ""}
+
+    @app.put("/api/config")
+    async def put_config(request: Request):
+        try:
+            body = await json_body(request)
+            settings = config_store.save_camera(body.get("camera"))
+            return {"camera": settings.camera or ""}
+        except (AttributeError, TypeError, ValueError) as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
 
     @app.put("/api/mqtt")
     async def put_mqtt(request: Request):

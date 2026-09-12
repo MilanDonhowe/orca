@@ -34,6 +34,20 @@ def test_index_and_status_websocket(tmp_path: Path):
     response = client.get("/")
     assert response.status_code == 200
     assert "/static/app.js" in response.text
+    assert 'href="/docs"' in response.text
+
+    docs = client.get("/docs")
+    assert docs.status_code == 200
+    assert "SwaggerUIBundle" in docs.text
+    assert "ORCA API documentation" in docs.text
+    assert "/static/openapi.yaml" in docs.text
+
+    specification = client.get("/static/openapi.yaml")
+    assert specification.status_code == 200
+    assert "openapi: 3.0.3" in specification.text
+    assert "  /api/ruleset:" in specification.text
+    assert "  /api/mqtt:" in specification.text
+    assert "  /api/control:" in specification.text
 
     with client.websocket_connect("/ws/status") as websocket:
         assert websocket.receive_json()["phase"] == "DELAY"
@@ -54,3 +68,14 @@ def test_mqtt_configuration_is_saved_and_password_is_hidden(tmp_path: Path):
     assert client.get("/api/mqtt").json()["password"] == ""
     assert config.load().mqtt.password == "secret"
     assert config.load().scan_rate == 1000
+
+
+def test_camera_configuration_can_be_set_and_cleared(tmp_path: Path):
+    config = ConfigStore(tmp_path / "config.toml")
+    client = TestClient(create_app(Engine(), RulesetStore(tmp_path / "rules.json"), config))
+
+    assert client.get("/api/config").json() == {"camera": ""}
+    assert client.put("/api/config", json={"camera": "2"}).json() == {"camera": "2"}
+    assert config.load().camera == "2"
+    assert client.put("/api/config", json={"camera": ""}).json() == {"camera": ""}
+    assert config.load().camera is None

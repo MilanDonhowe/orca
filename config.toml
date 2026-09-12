@@ -1,6 +1,5 @@
 [runtime]
 scan_rate = 1000
-camera = "0"
 
 [web]
 port = 8080

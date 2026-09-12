@@ -1,0 +1,382 @@
+openapi: 3.0.3
+info:
+  title: ORCA API
+  version: 1.0.0
+  description: |
+    Control and configure an ORCA OCR classification process.
+
+    The live status WebSocket is available at `/ws/status`. It sends a
+    `Status` JSON message approximately every 500 ms after the connection is
+    established; WebSocket operations are not part of the OpenAPI standard.
+servers:
+  - url: /
+    description: The ORCA instance serving this specification
+tags:
+  - name: Status
+  - name: Control
+  - name: Rules
+  - name: MQTT
+paths:
+  /api/status:
+    get:
+      tags: [Status]
+      summary: Get the current classification-loop status
+      operationId: getStatus
+      responses:
+        "200":
+          description: Current runtime state and recent cycle history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+  /api/control:
+    post:
+      tags: [Control]
+      summary: Pause or resume result broadcasts
+      description: Pausing suppresses MQTT result broadcasts while camera capture and OCR continue.
+      operationId: controlBroadcasts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ControlRequest"
+      responses:
+        "200":
+          description: Updated pause state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ControlResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/ruleset:
+    get:
+      tags: [Rules]
+      summary: Get the active ruleset
+      operationId: getRuleset
+      responses:
+        "200":
+          description: Active ruleset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ruleset"
+    put:
+      tags: [Rules]
+      summary: Replace the active ruleset
+      description: The saved ruleset is used by the next classification cycle.
+      operationId: replaceRuleset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Ruleset"
+      responses:
+        "200":
+          description: Saved ruleset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ruleset"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/ruleset/export:
+    get:
+      tags: [Rules]
+      summary: Download the active ruleset
+      operationId: exportRuleset
+      responses:
+        "200":
+          description: Active ruleset as an attachment
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: attachment; filename=orca-rules.json
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ruleset"
+  /api/test:
+    post:
+      tags: [Rules]
+      summary: Test text against a ruleset
+      description: Uses the active ruleset when the optional ruleset field is omitted.
+      operationId: testRuleset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestRequest"
+      responses:
+        "200":
+          description: Matching rules, in classification order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/config:
+    get:
+      tags: [Configuration]
+      summary: Get startup configuration
+      responses:
+        "200":
+          description: Startup configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppConfig"
+    put:
+      tags: [Configuration]
+      summary: Save optional camera source
+      description: An empty camera restores interactive camera selection. A restart is required to apply a change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppConfig"
+      responses:
+        "200":
+          description: Saved startup configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/mqtt:
+    get:
+      tags: [MQTT]
+      summary: Get MQTT settings
+      description: The saved password is never returned.
+      operationId: getMqttSettings
+      responses:
+        "200":
+          description: Public MQTT settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MqttSettings"
+    put:
+      tags: [MQTT]
+      summary: Save MQTT settings and reconnect
+      description: Set has_password to true and leave password empty to retain the saved password.
+      operationId: replaceMqttSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MqttSettingsInput"
+      responses:
+        "200":
+          description: Saved public MQTT settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MqttSettings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+components:
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    AppConfig:
+      type: object
+      required: [camera]
+      properties:
+        camera:
+          type: string
+          description: Camera index, URL, video path, demo, or empty for interactive selection.
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ControlRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [pause, resume]
+    ControlResponse:
+      type: object
+      required: [paused]
+      properties:
+        paused:
+          type: boolean
+    Ruleset:
+      type: object
+      required: [version, control, rules]
+      properties:
+        version:
+          type: integer
+          enum: [1]
+        control:
+          $ref: "#/components/schemas/RulesetControl"
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rule"
+    RulesetControl:
+      type: object
+      required: [ruletype]
+      properties:
+        ruletype:
+          type: string
+          enum: [single, multi]
+    Rule:
+      type: object
+      required: [label, topic, priority, type, content]
+      properties:
+        label:
+          type: string
+        topic:
+          type: string
+          pattern: "^[A-Za-z0-9_-]+$"
+        priority:
+          type: integer
+          description: Lower numbers have higher priority.
+        type:
+          type: string
+          enum: [TEXT, REGEX]
+        content:
+          type: string
+    TestRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          default: ""
+        ruleset:
+          $ref: "#/components/schemas/Ruleset"
+    TestResponse:
+      type: object
+      required: [matches]
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/RuleMatch"
+    RuleMatch:
+      type: object
+      required: [label, topic, priority]
+      properties:
+        label:
+          type: string
+        topic:
+          type: string
+        priority:
+          type: integer
+    MqttSettingsInput:
+      type: object
+      required: [enabled, host, port, tls, username, password, client_id, keepalive]
+      properties:
+        enabled:
+          type: boolean
+        host:
+          type: string
+          minLength: 1
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        tls:
+          type: boolean
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        has_password:
+          type: boolean
+          description: Retain the saved password when password is empty.
+        client_id:
+          type: string
+        keepalive:
+          type: integer
+          minimum: 1
+          maximum: 65535
+    MqttSettings:
+      allOf:
+        - $ref: "#/components/schemas/MqttSettingsInput"
+        - type: object
+          required: [has_password]
+          properties:
+            password:
+              type: string
+              enum: [""]
+              description: Always empty in responses.
+            has_password:
+              type: boolean
+    CycleRecord:
+      type: object
+      required: [timestamp, text, matches, phases_ms, total_ms, exceeded]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        text:
+          type: string
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/RuleMatch"
+        phases_ms:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        total_ms:
+          type: number
+          format: float
+        exceeded:
+          type: boolean
+        image:
+          type: string
+          nullable: true
+          description: JPEG data URL for the latest record; null in history entries.
+        error:
+          type: string
+          nullable: true
+    Status:
+      type: object
+      required: [running, paused, phase, mqtt_connected, latest, history, average_ms, scanrate]
+      properties:
+        running:
+          type: boolean
+        paused:
+          type: boolean
+        phase:
+          type: string
+          enum: [PAUSED, IMAGE CAPTURE, OCR MODEL, RULES CLASSIFIER, MQTT BROADCAST, DELAY, STOPPED, ERROR]
+        mqtt_connected:
+          type: boolean
+        latest:
+          allOf:
+            - $ref: "#/components/schemas/CycleRecord"
+          nullable: true
+        history:
+          type: array
+          maxItems: 60
+          items:
+            $ref: "#/components/schemas/CycleRecord"
+        average_ms:
+          type: number
+          format: float
+        scanrate:
+          type: integer
+          description: Configured cycle interval in milliseconds.

@@ -46,15 +46,11 @@ def choose_camera() -> str:
     if not cameras:
         print("No cameras detected; using the demo camera.")
         return "demo"
-    try:
-        from InquirerPy import inquirer
-        return str(inquirer.select(message="Select a camera:", choices=[str(item) for item in cameras], default=str(cameras[0])).execute())
-    except ImportError:
-        print("Connected cameras:")
-        for i, camera in enumerate(cameras):
-            print(f"  [{i}] Camera {camera}")
-        value = input("Select camera [0]: ").strip() or "0"
-        return str(cameras[int(value)])
+    print("Connected cameras:")
+    for i, camera in enumerate(cameras):
+        print(f"  [{i}] Camera {camera}")
+    value = input("Select camera [0]: ").strip() or "0"
+    return str(cameras[int(value)])
 
 
 def main(argv: list[str] | None = None) -> int:
