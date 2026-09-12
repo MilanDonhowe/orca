@@ -4,10 +4,9 @@ ORCA is a relatively small python application allowing for easy OCR based classi
 
 It collects image frames from your selected web camera (via opencv), runs it through RapidOCR, then runs the collected text through a set of "rules" to determine which class to be assigned and broadcasts the result over MQTT.
 
-
 ORCA comes with an optional FastAPI powered web UI to configure and view the classification loop.
 
-## Disclaimer:
+## Disclaimer: AI
 This application is pretty much entirely vibe-coded.  There's some human touch ups here and there, but for the most part this is all AI made and thus should be treated with some healthy skepticism on the performance and stability of the app.  I tried when possible to keep it as simple and self-contained as possible, but there still might be some odd ball bugs here and there.
 
 ## Quick start
@@ -27,23 +26,7 @@ For a real camera and ONNX model bundle, run:
 ./.venv/bin/orca --camera 0 --model-config models/my-ocr/orca-model.json
 ```
 
-When `--camera` is omitted in an interactive terminal, ORCA scans for cameras and prompts for one. If there are none, it falls back to demo mode. Real OCR uses plain ONNX Runtime. Models, tensor names, preprocessing, vocabulary, and postprocessing parameters live in a sidecar JSON file, so model bundles can be swapped without changing ORCA. The initial built-in postprocessors support DBNet text detection and CTC text recognition; new graph families implement the small `OCRBackend` interface. See [the model specification](design/model-spec.md).
-
-## CLI
-
-```text
-orca [--headless] [--camera SOURCE] [--model-config PATH] [--ruleset PATH]
-     [--config PATH] [--non-interactive] [--pause] [--self-host]
-```
-
-- `--headless` omits the web server but keeps the scan loop running.
-- `--camera` accepts an OpenCV camera index, video/stream path, or `demo`.
-- `--ruleset` defaults to `data/rules.json`; a starter file is created when absent.
-- `--config` defaults to `config.toml` and contains scan timing, web, and MQTT settings.
-- `--pause` starts OCR and live preview while suppressing MQTT result broadcasts.
-- `--self-host` binds the console to `0.0.0.0`; use only on a trusted network. There is no authentication in this initial local-first release.
-
-## Rulesets
+When `--camera` is omitted in an interactive terminal, ORCA scans for cameras and prompts for one. If there are none, it falls back to demo mode.## Rulesets
 
 Rulesets use schema version 1. Lower priority numbers win. In `single` mode ORCA returns only the highest-priority match; `multi` returns every match.
 
