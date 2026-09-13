@@ -1,4 +1,4 @@
-# ORCA: OCR -> Regex -> Classification
+# ORCA: OCR + Regex powered classifier
 
 ORCA is a relatively small vibe-coded python application allowing for easy OCR based classification solutions.
 
