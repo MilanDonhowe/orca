@@ -77,14 +77,19 @@ def create_app(engine, store: RulesetStore, config_store: ConfigStore | None = N
 
     @app.get("/api/config")
     async def get_config():
-        return {"camera": config_store.load().camera or ""}
+        settings = config_store.load()
+        return {"camera": settings.camera or "", "scan_rate": settings.scan_rate}
 
     @app.put("/api/config")
     async def put_config(request: Request):
         try:
             body = await json_body(request)
-            settings = config_store.save_camera(body.get("camera"))
-            return {"camera": settings.camera or ""}
+            current = config_store.load()
+            settings = config_store.save_runtime(
+                body.get("scan_rate", current.scan_rate),
+                body.get("camera", current.camera),
+            )
+            return {"camera": settings.camera or "", "scan_rate": settings.scan_rate}
         except (AttributeError, TypeError, ValueError) as exc:
             return JSONResponse({"error": str(exc)}, status_code=400)
 

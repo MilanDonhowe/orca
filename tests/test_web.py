@@ -74,8 +74,13 @@ def test_camera_configuration_can_be_set_and_cleared(tmp_path: Path):
     config = ConfigStore(tmp_path / "config.toml")
     client = TestClient(create_app(Engine(), RulesetStore(tmp_path / "rules.json"), config))
 
-    assert client.get("/api/config").json() == {"camera": ""}
-    assert client.put("/api/config", json={"camera": "2"}).json() == {"camera": "2"}
+    assert client.get("/api/config").json() == {"camera": "", "scan_rate": 1000}
+    assert client.put("/api/config", json={"camera": "2", "scan_rate": 250}).json() == {"camera": "2", "scan_rate": 250}
     assert config.load().camera == "2"
-    assert client.put("/api/config", json={"camera": ""}).json() == {"camera": ""}
+    assert config.load().scan_rate == 250
+    assert client.put("/api/config", json={"camera": ""}).json() == {"camera": "", "scan_rate": 250}
     assert config.load().camera is None
+
+    response = client.put("/api/config", json={"scan_rate": 0})
+    assert response.status_code == 400
+    assert "positive integer" in response.json()["error"]

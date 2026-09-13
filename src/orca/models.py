@@ -47,6 +47,7 @@ class Rule:
 class Ruleset:
     version: int = 1
     ruletype: str = "single"
+    basecase: str = "No match"
     rules: tuple[Rule, ...] = ()
 
     @classmethod
@@ -57,13 +58,16 @@ class Ruleset:
         ruletype = str(control.get("ruletype", "single")).lower()
         if ruletype not in {"single", "multi"}:
             raise ValueError("ruletype must be 'single' or 'multi'")
+        basecase = str(control.get("basecase", "No match")).strip()
+        if not basecase:
+            raise ValueError("basecase requires a label")
         rules = tuple(Rule.from_dict(item) for item in value.get("rules", []))
-        return cls(1, ruletype, rules)
+        return cls(1, ruletype, basecase, rules)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "version": self.version,
-            "control": {"ruletype": self.ruletype},
+            "control": {"ruletype": self.ruletype, "basecase": self.basecase},
             "rules": [asdict(rule) for rule in self.rules],
         }
 

@@ -5,7 +5,7 @@ import threading
 from dataclasses import dataclass
 from typing import Protocol
 
-
+from rapidocr_onnxruntime import RapidOCR # pyright: ignore[reportMissingTypeStubs]
 import cv2
 import cv2.utils.logging as cv2_log
 import numpy as np
@@ -69,7 +69,6 @@ class OCR:
     """Default local OCR engine backed by RapidOCR's Paddle-derived ONNX models."""
 
     def __init__(self):
-        from rapidocr_onnxruntime import RapidOCR
 
         self._engine = RapidOCR()
 

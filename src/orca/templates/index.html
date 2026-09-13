@@ -9,7 +9,7 @@
 <body>
   <header><div class="brand"><span class="whale">🫍</span><div><h1>ORCA</h1><p>OCR + Regex Classification</p></div></div><div id="phase" class="phase">CONNECTING</div></header>
   <nav aria-label="Main navigation">
-    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="mqtt-page">MQTT</button><button class="tab" data-page="control">Control</button><a class="tab" href="/docs">API docs</a>
+    <button class="tab active" data-page="status">Status</button><button class="tab" data-page="rules">Rule editor</button><button class="tab" data-page="mqtt-page">MQTT</button><button class="tab" data-page="control">Control</button><a class="tab" target="_blank" href="/docs">API docs</a>
   </nav>
   <main>
     <section id="status" class="page active">
@@ -19,7 +19,7 @@
     </section>
     <section id="rules" class="page">
       <div class="toolbar"><button id="add-rule">+ Add rule</button><button id="test-rules">Test live OCR</button><button id="import-rules">Import JSON</button><a class="button" href="/api/ruleset/export">Export JSON</a><button id="save-rules" class="primary">Save ruleset</button><input id="file" type="file" accept="application/json" hidden></div>
-      <article class="panel controls"><label>Match mode<select id="ruletype"><option value="single">Single, highest priority</option><option value="multi">Multiple matches</option></select></label></article>
+      <article class="panel controls"><label>Match mode<select id="ruletype"><option value="single">Single, highest priority</option><option value="multi">Multiple matches</option></select></label><label>Base case label<input id="basecase" required></label></article>
       <div id="rule-list"></div><div id="message" role="status"></div>
     </section>
     <section id="mqtt-page" class="page">
@@ -40,10 +40,10 @@
     </section>
     <section id="control" class="page">
       <article class="panel control-card"><h2>Classification loop</h2><p>Pausing keeps camera capture and OCR active while suppressing MQTT result broadcasts.</p><button id="toggle" class="danger">Pause broadcasts</button><div class="key"><kbd>Space</kbd> toggles while this page is active</div></article>
-      <form id="camera-form" class="panel settings-card" style="max-width:650px"><div class="panel-title">Startup settings</div><h2>Camera</h2><p class="settings-copy">Enter a device index, stream URL, video path, or <code>demo</code>. Leave blank to choose from available cameras when ORCA starts interactively.</p><label>Camera source<input id="camera-source" placeholder="Automatic selection" autocomplete="off"></label><div class="form-actions"><span id="camera-message" role="status"></span><button type="submit" class="primary">Save camera</button></div></form>
+      <form id="camera-form" class="panel settings-card" style="max-width:650px"><div class="panel-title">Runtime settings</div><h2>Cycle and camera</h2><p class="settings-copy">Cycle time changes apply to the next cycle. Camera changes require a restart; leave the source blank to choose from available cameras when ORCA starts interactively.</p><div class="form-grid"><label>Cycle time (milliseconds)<input id="scan-rate" type="number" min="1" step="1" required></label><label>Camera source<input id="camera-source" placeholder="Automatic selection" autocomplete="off"></label></div><div class="form-actions"><span id="camera-message" role="status"></span><button type="submit" class="primary">Save settings</button></div></form>
     </section>
   </main>
   <template id="rule-template"><article class="panel rule"><label>Label<input data-key="label"></label><label>MQTT sub-topic<input data-key="topic"></label><label>Priority<input data-key="priority" type="number"></label><label>Type<select data-key="type"><option>TEXT</option><option>REGEX</option></select></label><label class="content">Rule contents<input data-key="content"></label><button class="remove" aria-label="Remove rule">×</button></article></template>
-  <script src="{{ url_for('static', path='app.js') }}"></script>
+  <script src="{{ url_for('static', path='app.js') }}?v=20260912-3"></script>
 </body>
 </html>

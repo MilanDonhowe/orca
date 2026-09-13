@@ -123,7 +123,7 @@ paths:
   /api/config:
     get:
       tags: [Configuration]
-      summary: Get startup configuration
+      summary: Get runtime configuration
       responses:
         "200":
           description: Startup configuration
@@ -133,8 +133,8 @@ paths:
                 $ref: "#/components/schemas/AppConfig"
     put:
       tags: [Configuration]
-      summary: Save optional camera source
-      description: An empty camera restores interactive camera selection. A restart is required to apply a change.
+      summary: Save cycle time and optional camera source
+      description: Cycle time applies on the next cycle. An empty camera restores interactive camera selection; camera changes require a restart.
       requestBody:
         required: true
         content:
@@ -194,11 +194,15 @@ components:
   schemas:
     AppConfig:
       type: object
-      required: [camera]
+      required: [camera, scan_rate]
       properties:
         camera:
           type: string
           description: Camera index, URL, video path, demo, or empty for interactive selection.
+        scan_rate:
+          type: integer
+          minimum: 1
+          description: Target cycle time in milliseconds.
     Error:
       type: object
       required: [error]
@@ -233,11 +237,15 @@ components:
             $ref: "#/components/schemas/Rule"
     RulesetControl:
       type: object
-      required: [ruletype]
+      required: [ruletype, basecase]
       properties:
         ruletype:
           type: string
           enum: [single, multi]
+        basecase:
+          type: string
+          description: Label displayed when no rule matches.
+          default: No match
     Rule:
       type: object
       required: [label, topic, priority, type, content]

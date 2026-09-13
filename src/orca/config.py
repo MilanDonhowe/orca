@@ -9,7 +9,7 @@ from orca.models import Ruleset
 
 DEFAULT_RULESET = {
     "version": 1,
-    "control": {"ruletype": "single"},
+    "control": {"ruletype": "single", "basecase": "No match"},
     "rules": [
         {"label": "Example twenty", "topic": "twenty", "priority": 10, "type": "TEXT", "content": "20"}
     ],
@@ -130,8 +130,14 @@ class ConfigStore:
         return updated
 
     def save_camera(self, camera: str | None) -> AppSettings:
+        return self.save_runtime(self.load().scan_rate, camera)
+
+    def save_runtime(self, scan_rate: int, camera: str | None) -> AppSettings:
         current = self.load()
+        normalized_rate = int(scan_rate)
+        if normalized_rate <= 0:
+            raise ValueError("runtime.scan_rate must be a positive integer")
         normalized = str(camera).strip() if camera is not None else None
-        updated = AppSettings(current.scan_rate, current.web_port, normalized or None, current.mqtt)
+        updated = AppSettings(normalized_rate, current.web_port, normalized or None, current.mqtt)
         self.save(updated)
         return updated
