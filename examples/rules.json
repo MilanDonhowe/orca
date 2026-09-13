@@ -1,7 +1,8 @@
 {
   "version": 1,
   "control": {
-    "ruletype": "single"
+    "ruletype": "single",
+    "basecase": "No match"
   },
   "rules": [
     {

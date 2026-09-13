@@ -9,7 +9,7 @@ from orca.models import Ruleset
 
 DEFAULT_RULESET = {
     "version": 1,
-    "control": {"ruletype": "single"},
+    "control": {"ruletype": "single", "basecase": "No match"},
     "rules": [
         {"label": "Example twenty", "topic": "twenty", "priority": 10, "type": "TEXT", "content": "20"}
     ],
@@ -73,7 +73,7 @@ class MQTTSettings:
 class AppSettings:
     scan_rate: int = 1000
     web_port: int = 8080
-    camera: str = "0"
+    camera: str | None = None
     mqtt: MQTTSettings = MQTTSettings()
 
     @classmethod
@@ -82,14 +82,14 @@ class AppSettings:
             raise ValueError("Configuration must be a TOML table")
         runtime, web = value.get("runtime", {}), value.get("web", {})
         scan_rate = int(runtime.get("scan_rate", 1000))
-        camera = str(runtime.get("camera", "0")).strip()
+        camera_value = runtime.get("camera")
+        camera = str(camera_value).strip() if camera_value is not None else None
         web_port = int(web.get("port", 8080))
         if scan_rate <= 0:
             raise ValueError("runtime.scan_rate must be a positive integer")
         if not 1 <= web_port <= 65535:
             raise ValueError("web.port must be between 1 and 65535")
-        if not camera:
-            raise ValueError("runtime.camera must not be empty")
+        camera = camera or None
         return cls(scan_rate, web_port, camera, MQTTSettings.from_dict(value.get("mqtt", {})))
 
 
@@ -112,8 +112,9 @@ class ConfigStore:
             temp = self.path.with_suffix(self.path.suffix + ".tmp")
             mqtt = settings.mqtt
             quote = json.dumps
+            camera_line = f"camera = {quote(settings.camera)}\n" if settings.camera is not None else ""
             content = (
-                f"[runtime]\nscan_rate = {settings.scan_rate}\ncamera = {quote(settings.camera)}\n\n"
+                f"[runtime]\nscan_rate = {settings.scan_rate}\n{camera_line}\n"
                 f"[web]\nport = {settings.web_port}\n\n"
                 f"[mqtt]\nenabled = {str(mqtt.enabled).lower()}\nhost = {quote(mqtt.host)}\n"
                 f"port = {mqtt.port}\ntls = {str(mqtt.tls).lower()}\nusername = {quote(mqtt.username)}\n"
@@ -125,5 +126,18 @@ class ConfigStore:
     def save_mqtt(self, mqtt: MQTTSettings) -> AppSettings:
         current = self.load()
         updated = AppSettings(current.scan_rate, current.web_port, current.camera, mqtt)
+        self.save(updated)
+        return updated
+
+    def save_camera(self, camera: str | None) -> AppSettings:
+        return self.save_runtime(self.load().scan_rate, camera)
+
+    def save_runtime(self, scan_rate: int, camera: str | None) -> AppSettings:
+        current = self.load()
+        normalized_rate = int(scan_rate)
+        if normalized_rate <= 0:
+            raise ValueError("runtime.scan_rate must be a positive integer")
+        normalized = str(camera).strip() if camera is not None else None
+        updated = AppSettings(normalized_rate, current.web_port, normalized or None, current.mqtt)
         self.save(updated)
         return updated

@@ -23,6 +23,12 @@ def test_multi_returns_all_matches_in_priority_order():
     assert [m["label"] for m in Classifier(ruleset("multi")).classify("ORCA item 20")] == ["high", "low"]
 
 
+def test_ruleset_preserves_custom_basecase_label():
+    payload = ruleset().to_dict()
+    payload["control"]["basecase"] = "Unclassified"
+    assert Ruleset.from_dict(payload).to_dict()["control"]["basecase"] == "Unclassified"
+
+
 def test_invalid_match_mode():
     payload = ruleset().to_dict(); payload["control"]["ruletype"] = "many"
     with pytest.raises(ValueError):
